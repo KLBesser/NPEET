@@ -3,6 +3,7 @@
 # See readme.pdf for documentation
 # Or go to http://www.isi.edu/~gregv/npeet.html
 
+import collections
 import scipy.spatial as ss
 from scipy.special import digamma
 from math import log
@@ -25,7 +26,7 @@ def entropy(x, k=3, base=2):
     tree = ss.cKDTree(x)
     nn = [tree.query(point, k + 1, p=float('inf'))[0][k] for point in x]
     const = digamma(N) - digamma(k) + d * log(2)
-    return (const + d * np.mean(map(log, nn))) / log(base)
+    return (const + d * np.mean(list(map(log, nn)))) / log(base)
 
 def centropy(x, y, k=3, base=2):
   """ The classic K-L k-nearest neighbor continuous entropy estimator for the
@@ -103,7 +104,7 @@ def kldiv(x, xp, k=3, base=2):
     treep = ss.cKDTree(xp)
     nn = [tree.query(point, k + 1, p=float('inf'))[0][k] for point in x]
     nnp = [treep.query(point, k, p=float('inf'))[0][k - 1] for point in x]
-    return (const + d * np.mean(map(log, nnp)) - d * np.mean(map(log, nn))) / log(base)
+    return (const + d * np.mean(list(map(log, nnp))) - d * np.mean(list(map(log, nn)))) / log(base)
 
 
 # DISCRETE ESTIMATORS
@@ -118,19 +119,19 @@ def midd(x, y, base=2):
     """ Discrete mutual information estimator
         Given a list of samples which can be any hashable object
     """
-    return -entropyd(zip(x, y), base) + entropyd(x, base) + entropyd(y, base)
+    return -entropyd(tuple(zip(x, y)), base) + entropyd(x, base) + entropyd(y, base)
 
 def cmidd(x, y, z):
     """ Discrete mutual information estimator
         Given a list of samples which can be any hashable object
     """
-    return entropyd(zip(y, z)) + entropyd(zip(x, z)) - entropyd(zip(x, y, z)) - entropyd(z)
+    return entropyd(tuple(zip(y, z))) + entropyd(tuple(zip(x, z))) - entropyd(tuple(zip(x, y, z))) - entropyd(z)
 
 def centropyd(x, y, base=2):
   """ The classic K-L k-nearest neighbor continuous entropy estimator for the
       entropy of X conditioned on Y.
   """
-  return entropyd(zip(x, y), base) - entropyd(y, base)
+  return entropyd(tuple(zip(x, y)), base) - entropyd(y, base)
 
 def tcd(xs, base=2):
   xis = [entropyd(column(xs, i), base) for i in range(0, len(xs[0]))]
@@ -153,12 +154,12 @@ def hist(sx):
         if type(s) == list:
           s = tuple(s)
         d[s] = d.get(s, 0) + 1
-    return map(lambda z: float(z) / len(sx), d.values())
+    return list(map(lambda z: float(z) / len(sx), d.values()))
 
 
 def entropyfromprobs(probs, base=2):
     # Turn a normalized list of probabilities of discrete outcomes into entropy (base 2)
-    return -sum(map(elog, probs)) / log(base)
+    return -sum(list(map(elog, probs))) / log(base)
 
 
 def elog(x):
@@ -272,6 +273,7 @@ def zip2(*args):
 
 def discretize(xs):
     def discretize_one(x):
+        if not isinstance(x, collections.Iterable): return x
         if len(x) > 1:
             return tuple(x)
         else:
